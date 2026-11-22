@@ -41,6 +41,6 @@ python -m pytest tests/
 
 ## 未実施・今後の候補
 
-- Render等への公開（未実施）
+- Renderへの公開は実施済み（上の Live Demo が本番）
 - デスクトップ常駐版化やReleases等の配布形態（保留として別途検討）
 - 無料プランに載せる場合、SQLiteデータは再デプロイ等で消える想定です
