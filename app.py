@@ -1,0 +1,355 @@
+# ============================================================
+# websheep — Web Sheep Mascot (single file)
+# 画面の下を歩くWeb版デスクトップマスコット「羊バージョン」。
+# cocoweb（Cocoa Mascot）の羊版で、キャラはSVG＋CSSアニメの羊。
+# タップでセリフ（羊用24種）＋ジャンプ、ドラッグで移動、
+# 時間帯で挨拶が変わる。歩行／停止／おすわり付き。
+# ============================================================
+
+# =========================
+# [S1] LINES
+# =========================
+SHEEP_LINES = [
+    "めぇ〜。呼んだ？",
+    "羊を数えると眠くなるって？　わたしは数えられる側だけど。",
+    "もこもこでしょ。触っていいよ。",
+    "今日の草、おいしかったよ。",
+    "めぇ〜、おつかれさま。",
+    "数えてみて。1匹、2匹……ほら、眠くなってきた？",
+    "毛刈りの季節？　……まだ早いと思う。",
+    "牧場の風、気持ちいいね。",
+    "わたし、歩くの好きなんだ。",
+    "めぇ。翻訳すると「こんにちは」。",
+    "お昼寝は草の上がいちばん。",
+    "もこもこは正義。",
+    "今日も一日、がんばったね。",
+    "わたしの毛、雲に似てるって言われるよ。",
+    "めぇ〜〜〜（長めの挨拶）。",
+    "眠れない夜は、わたしを数えてね。",
+    "草むらに宝物はないけど、おいしい草はあるよ。",
+    "雨の日は小屋でのんびり。",
+    "わたしと歩くと、ゆっくり時間が流れるよ。",
+    "めぇ！　びっくりしたときの声。",
+    "冬はこの毛のおかげでぽかぽか。",
+    "おなかすいたら、まず草。",
+    "今日の雲、わたしに似てない？",
+    "また明日も、ここで会おうね。",
+]
+
+# =========================
+# [S2] DESIGN (CSS / JS / HTML)
+# =========================
+CSS = """
+*{box-sizing:border-box;}
+html,body{overflow-x:hidden;}
+body{margin:0;font-family:sans-serif;color:#22331c;background:#eef6e4;}
+header{padding:14px 16px 6px;text-align:center;}
+h1{margin:0;font-size:1.45rem;}
+header p{margin:6px 0 0;color:#5c7050;font-size:.95rem;}
+#stage{position:relative;height:62vh;min-height:380px;margin:12px;border-radius:18px;overflow:hidden;
+ background:linear-gradient(#bfe6f7 0 62%,#a8d97c 62% 100%);box-shadow:inset 0 0 0 2px #8fbf6a;}
+.sun{position:absolute;top:22px;right:30px;width:56px;height:56px;border-radius:50%;background:#ffe27a;box-shadow:0 0 24px rgba(255,210,80,.8);}
+.cloud{position:absolute;top:34px;left:36px;font-size:44px;opacity:.95;}
+.cloud2{position:absolute;top:70px;left:46%;font-size:32px;opacity:.8;}
+.flowers{position:absolute;left:24px;bottom:6%;font-size:26px;}
+.flowers2{position:absolute;right:28px;bottom:20%;font-size:22px;}
+.ground-line{position:absolute;left:0;right:0;bottom:38%;height:2px;background:#8fbf6a;}
+#mascot{position:absolute;bottom:12px;left:40px;width:132px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;}
+#mascot.dragging{cursor:grabbing;}
+#mascotInner{transition:transform .18s;}
+#mascot.facing-left #mascotInner{transform:scaleX(-1);}
+#sheepSvg{display:block;width:100%;pointer-events:none;filter:drop-shadow(0 4px 5px rgba(50,80,30,.3));}
+#mascot.walking #charBody{animation:bob .36s infinite alternate ease-in-out;transform-origin:50% 100%;}
+#mascot.jumping #charBody{animation:jump .38s ease-out;}
+#mascot.sitting #charBody{transform:translateY(12px) scale(.97);}
+@keyframes bob{from{transform:translateY(0) rotate(-1.4deg)}to{transform:translateY(-6px) rotate(1.4deg)}}
+@keyframes jump{0%{transform:translateY(0)}45%{transform:translateY(-26px)}100%{transform:translateY(0)}}
+.eye{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite;}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+.leg{transform-box:fill-box;transform-origin:50% 0;}
+#mascot.walking .leg-a{animation:swing .36s infinite alternate ease-in-out;}
+#mascot.walking .leg-b{animation:swing .36s infinite alternate-reverse ease-in-out;}
+@keyframes swing{from{transform:rotate(13deg)}to{transform:rotate(-13deg)}}
+.ear{transform-box:fill-box;transform-origin:0 50%;}
+#mascot.walking .ear{animation:earflop .36s infinite alternate ease-in-out;}
+@keyframes earflop{from{transform:rotate(-4deg)}to{transform:rotate(5deg)}}
+#bubble{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);width:max-content;max-width:230px;
+ background:#fff;color:#22331c;border-radius:14px;padding:9px 12px;font-size:.95rem;line-height:1.45;text-align:center;
+ box-shadow:0 3px 10px rgba(50,80,30,.25);opacity:0;pointer-events:none;transition:opacity .2s;white-space:pre-wrap;z-index:3;}
+#bubble.show{opacity:1;}
+#bubble:after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);border:8px solid transparent;border-top-color:#fff;border-bottom:0;}
+.controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:2px 12px 8px;}
+.controls button{padding:11px 18px;font-size:1rem;border:0;border-radius:999px;background:#4e7a35;color:#fff;cursor:pointer;}
+.controls button.secondary{background:#fff;color:#4e7a35;box-shadow:inset 0 0 0 2px #4e7a35;}
+.meta{text-align:center;color:#5c7050;padding-bottom:18px;font-size:.95rem;}
+@media (max-width:560px){
+ #mascot{width:110px;}
+ #stage{height:58vh;}
+}
+"""
+
+SCRIPT = """
+const lines = __LINES_JSON__;
+const stage = document.getElementById("stage");
+const mascot = document.getElementById("mascot");
+const bubble = document.getElementById("bubble");
+let lastLine = -1, bubbleTimer = null;
+function say(text){
+  bubble.textContent = text; bubble.classList.add("show");
+  clearTimeout(bubbleTimer); bubbleTimer = setTimeout(()=>bubble.classList.remove("show"), 4200);
+}
+function randomLine(){
+  let i; do{ i = Math.floor(Math.random()*lines.length); }while(lines.length > 1 && i === lastLine);
+  lastLine = i; return lines[i];
+}
+function greet(){
+  const h = new Date().getHours();
+  if(h >= 5 && h < 11) return "おはよう、めぇ〜。今日も牧場は平和だよ。";
+  if(h >= 11 && h < 17) return "こんにちは。お散歩中だよ、めぇ。";
+  if(h >= 17 && h < 22) return "こんばんは。今日の草はおいしかったよ。";
+  return "もう夜だよ。羊を数えて、ゆっくり休んでね。";
+}
+let x = 40, dir = 1, speed = 48, walking = true, paused = false, sitting = false;
+let lastTs = null, idleTimer = 0, nextIdle = 5;
+function groundBottom(){ return 12; }
+function step(ts){
+  if(lastTs === null) lastTs = ts;
+  const dt = Math.min((ts - lastTs)/1000, .05); lastTs = ts;
+  if(walking && !paused && !sitting && !drag){
+    x += dir*speed*dt;
+    const maxX = stage.clientWidth - mascot.clientWidth - 8;
+    if(x >= maxX){ x = maxX; dir = -1; }
+    if(x <= 8){ x = 8; dir = 1; }
+    mascot.style.left = x + "px";
+    mascot.classList.toggle("facing-left", dir < 0);
+    mascot.classList.add("walking");
+    idleTimer += dt;
+    if(idleTimer >= nextIdle){ idleTimer = 0; nextIdle = 4 + Math.random()*6; pauseWalk(1400 + Math.random()*1800); }
+  }
+  requestAnimationFrame(step);
+}
+function pauseWalk(ms){
+  paused = true; mascot.classList.remove("walking");
+  setTimeout(()=>{ paused = false; }, ms);
+}
+requestAnimationFrame(step);
+function callSheep(){
+  say(randomLine());
+  mascot.classList.remove("jumping"); void mascot.offsetWidth; mascot.classList.add("jumping");
+  fetch("/count", {method:"POST"}).then(r => r.json()).then(d => {
+    document.getElementById("totalCount").textContent = d.total;
+    document.getElementById("todayCount").textContent = d.today;
+  }).catch(()=>{});
+}
+document.getElementById("callBtn").addEventListener("click", callSheep);
+const walkBtn = document.getElementById("walkBtn");
+walkBtn.addEventListener("click", ()=>{
+  walking = !walking;
+  mascot.classList.toggle("walking", walking);
+  walkBtn.textContent = walking ? "散歩を止める" : "散歩をはじめる";
+  if(walking) say("お散歩、再開だよ。めぇ〜。"); else say("ここで草でも食べてるね。");
+});
+document.getElementById("sitBtn").addEventListener("click", ()=>{
+  sitting = true; mascot.classList.add("sitting"); mascot.classList.remove("walking"); say("おすわり。……ごほうびの草は？");
+  setTimeout(()=>{ sitting = false; mascot.classList.remove("sitting"); }, 3200);
+});
+let drag = null, dragMoved = false, downAt = 0;
+mascot.addEventListener("pointerdown", e => {
+  drag = {dx: e.clientX - mascot.getBoundingClientRect().left, dy: e.clientY - mascot.getBoundingClientRect().top};
+  dragMoved = false; downAt = Date.now(); mascot.classList.add("dragging"); mascot.setPointerCapture(e.pointerId);
+});
+mascot.addEventListener("pointermove", e => {
+  if(!drag) return;
+  const sr = stage.getBoundingClientRect();
+  let nx = e.clientX - sr.left - drag.dx;
+  let ny = e.clientY - sr.top - drag.dy;
+  if(Math.abs(nx - x) > 4) dragMoved = true;
+  nx = Math.max(0, Math.min(nx, sr.width - mascot.clientWidth));
+  ny = Math.max(0, Math.min(ny, sr.height - mascot.clientHeight));
+  x = nx; mascot.style.left = nx + "px"; mascot.style.bottom = (sr.height - ny - mascot.clientHeight) + "px";
+});
+mascot.addEventListener("pointerup", e => {
+  if(!drag) return;
+  const wasDrag = dragMoved || (Date.now() - downAt > 350);
+  drag = null; mascot.classList.remove("dragging");
+  mascot.style.bottom = groundBottom() + "px";
+  if(!wasDrag) callSheep(); else { say("ここに置くのね。めぇ。"); pauseWalk(1200); }
+});
+window.addEventListener("resize", ()=>{ const maxX = stage.clientWidth - mascot.clientWidth - 8; if(x > maxX){ x = maxX; mascot.style.left = x + "px"; } });
+say(greet());
+"""
+
+SHEEP_SVG = """
+<svg id="sheepSvg" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="羊">
+  <g id="charBody">
+    <!-- legs -->
+    <rect class="leg leg-a" x="62" y="104" width="11" height="30" rx="5" fill="#5b4a42"/>
+    <rect class="leg leg-b" x="88" y="104" width="11" height="30" rx="5" fill="#6d5a50"/>
+    <rect class="leg leg-b" x="122" y="104" width="11" height="30" rx="5" fill="#5b4a42"/>
+    <rect class="leg leg-a" x="146" y="104" width="11" height="30" rx="5" fill="#6d5a50"/>
+    <!-- tail -->
+    <circle cx="34" cy="72" r="13" fill="#ffffff" stroke="#d9d2c4" stroke-width="2"/>
+    <!-- wool body: cluster of fluffy circles -->
+    <g fill="#ffffff" stroke="#d9d2c4" stroke-width="2">
+      <circle cx="58" cy="66" r="24"/>
+      <circle cx="84" cy="50" r="27"/>
+      <circle cx="114" cy="48" r="28"/>
+      <circle cx="140" cy="60" r="25"/>
+      <circle cx="128" cy="82" r="26"/>
+      <circle cx="96" cy="86" r="27"/>
+      <circle cx="64" cy="84" r="23"/>
+      <ellipse cx="98" cy="68" rx="52" ry="34" stroke="none"/>
+    </g>
+    <!-- head -->
+    <g>
+      <ellipse class="ear" cx="152" cy="52" rx="17" ry="8" fill="#5b4a42" transform="rotate(24 152 52)"/>
+      <ellipse cx="176" cy="66" rx="24" ry="27" fill="#6d5a50"/>
+      <circle cx="164" cy="34" r="13" fill="#ffffff" stroke="#d9d2c4" stroke-width="2"/>
+      <circle cx="180" cy="30" r="15" fill="#ffffff" stroke="#d9d2c4" stroke-width="2"/>
+      <circle cx="192" cy="38" r="11" fill="#ffffff" stroke="#d9d2c4" stroke-width="2"/>
+      <circle class="eye" cx="170" cy="62" r="3.4" fill="#241d18"/>
+      <circle class="eye" cx="188" cy="62" r="3.4" fill="#241d18"/>
+      <ellipse cx="180" cy="76" rx="4.5" ry="3" fill="#c98a8a"/>
+      <path d="M176 84 Q180 88 184 84" stroke="#3a2f28" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="162" cy="72" r="4" fill="#e8a7a7" opacity=".65"/>
+      <circle cx="196" cy="72" r="4" fill="#e8a7a7" opacity=".65"/>
+    </g>
+  </g>
+</svg>
+"""
+
+HTML = """<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ UI.app_title }}</title>
+<style>{{ css|safe }}</style>
+</head>
+<body>
+<header>
+<h1>{{ UI.app_title }}</h1>
+<p>{{ UI.lead }}</p>
+</header>
+
+<div id="stage">
+  <div class="sun"></div><div class="cloud">☁️</div><div class="cloud2">☁️</div>
+  <div class="flowers">🌼🌷</div><div class="flowers2">🌼</div><div class="ground-line"></div>
+  <div id="mascot" class="walking" role="button" aria-label="羊" title="タップで呼ぶ／ドラッグで移動">
+    <div id="bubble"></div>
+    <div id="mascotInner">
+    __SHEEP_SVG__
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="callBtn">羊を呼ぶ</button>
+  <button id="walkBtn" class="secondary">散歩を止める</button>
+  <button id="sitBtn" class="secondary">おすわり</button>
+</div>
+<p class="meta">{{ UI.count_label }}：<span id="totalCount">{{ total }}</span>（{{ UI.today_label }}：<span id="todayCount">{{ today }}</span>）<br>
+ドラッグで好きな場所へ動かせます。タップ／クリックでも反応します。</p>
+
+<script>{{ script|safe }}</script>
+</body>
+</html>
+"""
+
+# =========================
+# [S3] APP / DB
+# =========================
+from flask import Flask, render_template_string, jsonify
+import sqlite3
+import os
+import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+app = Flask(__name__)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.environ.get("WEBSHEEP_DB_PATH", os.path.join(BASE_DIR, "taps.db"))
+
+UI_TEXT = {
+    "app_title": "websheep — Web Sheep Mascot",
+    "lead": "牧場を歩く、小さな羊です。cocoweb（Cocoa Mascot）の羊バージョン。",
+    "count_label": "呼ばれた回数",
+    "today_label": "今日",
+}
+
+
+@app.context_processor
+def inject():
+    return dict(UI=UI_TEXT)
+
+
+SQL_INIT = """
+CREATE TABLE IF NOT EXISTS taps(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tapped_at TEXT NOT NULL
+)
+"""
+
+
+def db():
+    return sqlite3.connect(DB_PATH, check_same_thread=False)
+
+
+def db_init():
+    with db() as c:
+        c.execute(SQL_INIT)
+
+
+def today_str() -> str:
+    return datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d")
+
+
+def db_counts():
+    with db() as c:
+        total = c.execute("SELECT COUNT(*) FROM taps").fetchone()[0]
+        today = c.execute(
+            "SELECT COUNT(*) FROM taps WHERE tapped_at LIKE ?",
+            (today_str() + "%",),
+        ).fetchone()[0]
+    return total, today
+
+
+def db_tap():
+    now = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S")
+    with db() as c:
+        c.execute("INSERT INTO taps(tapped_at) VALUES(?)", (now,))
+    return db_counts()
+
+
+db_init()
+
+
+def render_page(total, today):
+    script = SCRIPT.replace("__LINES_JSON__", json.dumps(SHEEP_LINES, ensure_ascii=False))
+    html = HTML.replace("__SHEEP_SVG__", SHEEP_SVG)
+    return render_template_string(html, css=CSS, script=script, total=total, today=today)
+
+
+# =========================
+# [S4] RUN
+# =========================
+@app.route("/")
+def index():
+    total, today = db_counts()
+    return render_page(total, today)
+
+
+@app.route("/count", methods=["POST"])
+def count():
+    total, today = db_tap()
+    return jsonify({"total": total, "today": today})
+
+
+@app.route("/healthz")
+def healthz():
+    return jsonify({"ok": True})
+
+
+if __name__ == "__main__":
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")
